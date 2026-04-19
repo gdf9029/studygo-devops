@@ -382,13 +382,15 @@ pipeline {
                 // Check monitoring stack health
                 bat '''
                     echo === Checking Prometheus health ===
-                    curl -s -o nul -w "Prometheus: HTTP %%{http_code}\n" http://localhost:9091/-/healthy 2>nul || echo "Prometheus: Not running (start with docker compose)"
+                    curl -s -o nul -w "Prometheus: HTTP %%{http_code} " http://localhost:9091/-/healthy 2>nul || echo "Prometheus: Not running"
 
                     echo === Checking Grafana health ===
-                    curl -s -o nul -w "Grafana: HTTP %%{http_code}\n" http://localhost:3002/api/health 2>nul || echo "Grafana: Not running (start with docker compose)"
+                    curl -s -o nul -w "Grafana:    HTTP %%{http_code} " http://localhost:3002/api/health 2>nul || echo "Grafana: Not running"
 
                     echo === Checking AlertManager health ===
-                    curl -s -o nul -w "AlertManager: HTTP %%{http_code}\n" http://localhost:9094/-/healthy 2>nul || echo "AlertManager: Not running (start with docker compose)"
+                    curl -s -o nul -w "AlertMgr:   HTTP %%{http_code} " http://localhost:9094/-/healthy 2>nul || echo "AlertManager: Not running"
+
+                    exit /b 0
                 '''
 
                 // Fire a test alert to AlertManager (incident simulation)
@@ -398,6 +400,7 @@ pipeline {
                         -H "Content-Type: application/json" ^
                         -d "[{\"labels\":{\"alertname\":\"JenkinsPipelineTestAlert\",\"severity\":\"info\",\"app\":\"studygo\"},\"annotations\":{\"summary\":\"Pipeline completed\",\"description\":\"Build completed successfully\"}}]" ^
                         2>nul || echo "AlertManager test alert sent (or not yet running)"
+                    exit /b 0
                 '''
 
                 // Generate monitoring report

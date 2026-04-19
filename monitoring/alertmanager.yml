@@ -4,10 +4,10 @@
 # ============================================================
 
 global:
-  smtp_smarthost: "${MAIL_HOST}:587"
-  smtp_from: "alerts@studygo.internal"
-  smtp_auth_username: "${MAIL_USER}"
-  smtp_auth_password: "${MAIL_PASS}"
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "adityasoodgood@gmail.com"
+  smtp_auth_username: "adityasoodgood@gmail.com"
+  smtp_auth_password: "mgfyzotdzqkpfclw"
   smtp_require_tls: true
   resolve_timeout: 5m
 
