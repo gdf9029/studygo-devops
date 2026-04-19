@@ -1,0 +1,154 @@
+version: "3.9"
+
+# ============================================================
+# StudyGo — Production Environment
+# docker-compose.production.yml
+# ============================================================
+
+networks:
+  studygo-prod:
+    driver: bridge
+
+volumes:
+  mongo-prod-data:
+  prometheus-prod-data:
+  grafana-prod-data:
+
+services:
+  # ─── MongoDB ────────────────────────────────────────────────
+  mongo:
+    image: mongo:6.0
+    container_name: studygo-mongo-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: studygo_production
+    volumes:
+      - mongo-prod-data:/data/db
+    networks:
+      - studygo-prod
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ─── Backend API ────────────────────────────────────────────
+  backend:
+    image: ${DOCKER_REGISTRY}/studygo-backend:${BUILD_VERSION}
+    container_name: studygo-backend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGODB_URL: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/studygo_production?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+      CLOUD_NAME: ${CLOUD_NAME}
+      API_KEY: ${API_KEY}
+      API_SECRET: ${API_SECRET}
+      RAZORPAY_KEY: ${RAZORPAY_KEY}
+      RAZORPAY_SECRET: ${RAZORPAY_SECRET}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    networks:
+      - studygo-prod
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      - "com.studygo.env=production"
+      - "com.studygo.version=${BUILD_VERSION}"
+
+  # ─── Frontend ────────────────────────────────────────────────
+  frontend:
+    image: ${DOCKER_REGISTRY}/studygo-frontend:${BUILD_VERSION}
+    container_name: studygo-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - studygo-prod
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      - "com.studygo.env=production"
+      - "com.studygo.version=${BUILD_VERSION}"
+
+  # ─── Prometheus ─────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: studygo-prometheus-prod
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml
+      - prometheus-prod-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - studygo-prod
+
+  # ─── Grafana ────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: studygo-grafana-prod
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    volumes:
+      - grafana-prod-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    networks:
+      - studygo-prod
+
+  # ─── AlertManager ───────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: studygo-alertmanager-prod
+    restart: always
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - "9093:9093"
+    networks:
+      - studygo-prod
+
+  # ─── Node Exporter ──────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: studygo-node-exporter-prod
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - studygo-prod

@@ -1,0 +1,126 @@
+# ============================================================
+# Prometheus Alert Rules — StudyGo
+# monitoring/alert.rules.yml
+# ============================================================
+
+groups:
+  # ─── Application Availability Alerts ──────────────────────
+  - name: studygo_availability
+    rules:
+
+      - alert: BackendDown
+        expr: up{job="studygo-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "StudyGo Backend API is DOWN"
+          description: "The StudyGo backend API has been unreachable for more than 1 minute. Instance: {{ $labels.instance }}"
+          runbook: "https://wiki.studygo.internal/runbooks/backend-down"
+
+      - alert: FrontendDown
+        expr: up{job="studygo-frontend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: frontend
+        annotations:
+          summary: "StudyGo Frontend is DOWN"
+          description: "The StudyGo frontend Nginx has been unreachable for more than 2 minutes."
+
+  # ─── Response Time Alerts ─────────────────────────────────
+  - name: studygo_performance
+    rules:
+
+      - alert: HighResponseTime
+        expr: http_request_duration_ms{quantile="0.95"} > 2000
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High API Response Time (p95 > 2s)"
+          description: "95th percentile response time is {{ $value }}ms on {{ $labels.route }}. Users may experience slow load times."
+
+      - alert: CriticalResponseTime
+        expr: http_request_duration_ms{quantile="0.99"} > 5000
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Critical API Response Time (p99 > 5s)"
+          description: "99th percentile response time is {{ $value }}ms — severe degradation."
+
+  # ─── Error Rate Alerts ────────────────────────────────────
+  - name: studygo_errors
+    rules:
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High HTTP 5xx Error Rate > 5%"
+          description: "Error rate is {{ printf \"%.2f\" $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: CriticalErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Critical HTTP 5xx Error Rate > 20%"
+          description: "Error rate is {{ printf \"%.2f\" $value | humanizePercentage }} — immediate action required."
+
+  # ─── Infrastructure Alerts ────────────────────────────────
+  - name: studygo_infrastructure
+    rules:
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ printf \"%.1f\" $value }}% (threshold: 80%)"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High Memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ printf \"%.1f\" $value }}% (threshold: 85%)"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ printf \"%.1f\" $value }}% disk space remaining."
+
+  # ─── Business Logic Alerts ────────────────────────────────
+  - name: studygo_business
+    rules:
+
+      - alert: PaymentServiceErrors
+        expr: rate(http_requests_total{route="/api/v1/payment",status=~"5.."}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: payments
+        annotations:
+          summary: "Payment endpoint is returning errors"
+          description: "Payment route is failing — revenue impact possible. Rate: {{ $value }}/s"

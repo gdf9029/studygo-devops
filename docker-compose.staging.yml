@@ -1,0 +1,144 @@
+version: "3.9"
+
+# ============================================================
+# StudyGo — Staging Environment
+# docker-compose.staging.yml
+# ============================================================
+
+networks:
+  studygo-staging:
+    driver: bridge
+
+volumes:
+  mongo-staging-data:
+  prometheus-staging-data:
+  grafana-staging-data:
+
+services:
+  # ─── MongoDB ────────────────────────────────────────────────
+  mongo:
+    image: mongo:6.0
+    container_name: studygo-mongo-staging
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-staging_pass}
+      MONGO_INITDB_DATABASE: studygo_staging
+    volumes:
+      - mongo-staging-data:/data/db
+    networks:
+      - studygo-staging
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ─── Backend API ────────────────────────────────────────────
+  backend:
+    image: ${DOCKER_REGISTRY:-studygo}/studygo-backend:${BUILD_VERSION:-latest}
+    container_name: studygo-backend-staging
+    restart: unless-stopped
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+      MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-staging_pass}@mongo:27017/studygo_staging?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+      CLOUD_NAME: ${CLOUD_NAME}
+      API_KEY: ${API_KEY}
+      API_SECRET: ${API_SECRET}
+      RAZORPAY_KEY: ${RAZORPAY_KEY}
+      RAZORPAY_SECRET: ${RAZORPAY_SECRET}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4001:4000"
+    networks:
+      - studygo-staging
+    labels:
+      - "com.studygo.env=staging"
+      - "com.studygo.version=${BUILD_VERSION:-latest}"
+
+  # ─── Frontend ────────────────────────────────────────────────
+  frontend:
+    image: ${DOCKER_REGISTRY:-studygo}/studygo-frontend:${BUILD_VERSION:-latest}
+    container_name: studygo-frontend-staging
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    networks:
+      - studygo-staging
+    labels:
+      - "com.studygo.env=staging"
+      - "com.studygo.version=${BUILD_VERSION:-latest}"
+
+  # ─── Prometheus ─────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: studygo-prometheus-staging
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml
+      - prometheus-staging-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9091:9090"
+    networks:
+      - studygo-staging
+
+  # ─── Grafana ────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: studygo-grafana-staging
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-staging-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3002:3000"
+    networks:
+      - studygo-staging
+
+  # ─── AlertManager ───────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: studygo-alertmanager-staging
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - "9094:9093"
+    networks:
+      - studygo-staging
+
+  # ─── Node Exporter (host metrics) ───────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: studygo-node-exporter-staging
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - studygo-staging
