@@ -222,22 +222,22 @@ pipeline {
                 // Security summary report
                 bat '''
                     echo ============================================= > security-summary.txt
-                    echo   SECURITY SCAN SUMMARY — StudyGo Pipeline    >> security-summary.txt
+                    echo   SECURITY SCAN SUMMARY - StudyGo Pipeline   >> security-summary.txt
                     echo ============================================= >> security-summary.txt
                     echo Build: %APP_NAME%                             >> security-summary.txt
-                    echo. >> security-summary.txt
+                    echo.                                              >> security-summary.txt
                     echo Tool: npm audit (frontend + backend)          >> security-summary.txt
-                    echo. >> security-summary.txt
+                    echo.                                              >> security-summary.txt
                     echo FINDINGS SUMMARY:                             >> security-summary.txt
-                    echo  - cloudinary < 2.7.0 [HIGH] Arg injection   >> security-summary.txt
-                    echo    Status: Accepted - breaking change, low risk >> security-summary.txt
-                    echo  - nodemailer <= 8.0.4 [HIGH] SMTP injection  >> security-summary.txt
-                    echo    Status: Accepted - inputs are server-controlled >> security-summary.txt
+                    echo  - cloudinary ^<2.7.0 [HIGH] Arg injection    >> security-summary.txt
+                    echo    Status: Accepted - breaking change         >> security-summary.txt
+                    echo  - nodemailer ^<=8.0.4 [HIGH] SMTP injection   >> security-summary.txt
+                    echo    Status: Accepted - server-controlled input >> security-summary.txt
                     echo  - nodemon semver [HIGH] ReDoS (dev-only)     >> security-summary.txt
                     echo    Status: Not in production Docker image     >> security-summary.txt
                     echo  - tar via bcrypt [HIGH] path traversal       >> security-summary.txt
                     echo    Status: Install-time only, not runtime     >> security-summary.txt
-                    echo  - 14 vulns FIXED via npm audit fix           >> security-summary.txt
+                    echo  - 14 vulns fixed via npm audit fix           >> security-summary.txt
                     echo ============================================= >> security-summary.txt
                     type security-summary.txt
                 '''
@@ -261,23 +261,23 @@ pipeline {
                             echo === Deploying StudyGo to staging environment ===
                             echo Pulling/creating staging containers...
 
-                            REM Stop existing staging containers
-                            docker compose -f docker-compose.staging.yml down --remove-orphans 2>nul || echo "No existing containers"
+                            REM Force remove old staging containers to avoid name conflicts
+                            docker rm -f studygo-mongo-staging studygo-grafana-staging studygo-prometheus-staging studygo-alertmanager-staging studygo-node-exporter-staging studygo-frontend-staging studygo-backend-staging 2>nul
+                            echo Old containers removed
 
-                            REM Start staging stack (uses locally built images)
+                            REM Remove old network to start fresh
+                            docker network rm studygo-pipeline_studygo-staging 2>nul
+                            echo Old network removed
+
+                            REM Start staging stack
                             set BUILD_VERSION=${BUILD_VERSION}
-                            docker compose -f docker-compose.staging.yml up -d mongo
-
-                            echo Waiting for MongoDB to be ready...
-                            timeout /t 10 /nobreak >nul
-
                             docker compose -f docker-compose.staging.yml up -d
 
                             echo === Staging containers status ===
                             docker compose -f docker-compose.staging.yml ps
 
                             echo Waiting for services to initialise...
-                            timeout /t 20 /nobreak >nul
+                            ping -n 25 127.0.0.1 >nul
 
                             echo === Smoke testing staging frontend ===
                             curl -s -o nul -w "Frontend HTTP status: %%{http_code}" http://localhost:3001/ || echo "Frontend not yet reachable"

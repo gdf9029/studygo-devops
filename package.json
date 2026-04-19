@@ -36,7 +36,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:ci": "npx jest --testPathPattern=src/__tests__/ --coverage --coverageDirectory=coverage --coverageReporters=text --coverageReporters=lcov --reporters=default --reporters=jest-junit --watchAll=false --forceExit --passWithNoTests",
+    "test:ci": "npx jest --testMatch=\"**/__tests__/**/*.test.js\" --coverage --coverageDirectory=coverage --coverageReporters=text --coverageReporters=lcov --reporters=default --reporters=jest-junit --watchAll=false --forceExit --passWithNoTests",
     "eject": "react-scripts eject",
     "server": "cd server && npm run dev",
     "dev": "concurrently -n \"client,server\" -c \"bgBlue,bgYellow\" \"npm start\" \"npm run server\""
