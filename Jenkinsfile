@@ -188,16 +188,20 @@ pipeline {
                 echo "║   STAGE 4 — SECURITY SCANNING        ║"
                 echo "╚══════════════════════════════════════╝"
 
-                // npm audit — always available, shows real CVEs
+                // npm audit — frontend (workspace root)
                 bat '''
-                    echo === npm audit — Frontend dependencies ===
-                    call npm audit --audit-level=high > npm-audit-frontend.txt 2>&1 || echo "Vulnerabilities found — see report"
+                    echo === npm audit - Frontend dependencies ===
+                    call npm audit --audit-level=high 1>npm-audit-frontend.txt 2>&1
+                    if errorlevel 1 (echo Vulnerabilities found in frontend) else (echo No high vulnerabilities in frontend)
                     type npm-audit-frontend.txt
+                '''
 
-                    echo === npm audit — Backend dependencies ===
+                // npm audit — backend (separate bat block, starts fresh at workspace root)
+                bat '''
+                    echo === npm audit - Backend dependencies ===
                     cd server
-                    call npm audit --audit-level=high > ..\npm-audit-backend.txt 2>&1 || echo "Vulnerabilities found — see report"
-                    cd ..
+                    call npm audit --audit-level=high 1>npm-audit-backend.txt 2>&1
+                    if errorlevel 1 (echo Vulnerabilities found in backend) else (echo No high vulnerabilities in backend)
                     type npm-audit-backend.txt
                 '''
 
@@ -238,7 +242,7 @@ pipeline {
                     type security-summary.txt
                 '''
 
-                archiveArtifacts artifacts: 'npm-audit-frontend.txt, npm-audit-backend.txt, security-summary.txt, snyk-report.json', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'npm-audit-frontend.txt, server/npm-audit-backend.txt, security-summary.txt, snyk-report.json', allowEmptyArchive: true
                 echo "✅ SECURITY STAGE COMPLETE"
             }
         }
