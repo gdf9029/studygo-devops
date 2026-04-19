@@ -103,14 +103,7 @@ pipeline {
                     post {
                         always {
                             junit allowEmptyResults: true, testResults: 'junit-frontend.xml'
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'coverage/lcov-report',
-                                reportFiles: 'index.html',
-                                reportName: 'Frontend Coverage Report'
-                            ])
+                            archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: true
                         }
                     }
                 }
@@ -126,14 +119,7 @@ pipeline {
                     post {
                         always {
                             junit allowEmptyResults: true, testResults: 'server/junit-backend.xml'
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'server/coverage/lcov-report',
-                                reportFiles: 'index.html',
-                                reportName: 'Backend Coverage Report'
-                            ])
+                            archiveArtifacts artifacts: 'server/coverage/**', allowEmptyArchive: true
                         }
                     }
                 }

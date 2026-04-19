@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="10" failures="0" errors="0" time="3.791">
+  <testsuite name="StudyGo Frontend — App Bootstrap" errors="0" failures="0" skipped="0" timestamp="2026-04-19T13:13:24" time="2.064" tests="10">
+    <testcase classname="StudyGo Frontend — App Bootstrap" name="React renders without crashing" time="0.089">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Utilities" name="formats currency correctly (INR)" time="0.02">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Utilities" name="validates email format" time="0.001">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Utilities" name="truncates long text correctly" time="0.001">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Utilities" name="calculates discount percentage" time="0">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Course Data" name="course object has required fields" time="0.001">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Course Data" name="instructor full name concatenates correctly" time="0">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Course Data" name="enrolled students count is numeric" time="0">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Auth Token" name="token stored and retrieved from localStorage" time="0.001">
+    </testcase>
+    <testcase classname="StudyGo Frontend — Auth Token" name="detects authenticated state from token presence" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>

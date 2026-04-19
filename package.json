@@ -36,7 +36,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:ci": "react-scripts test --watchAll=false --passWithNoTests --forceExit --coverage --coverageReporters=text --coverageReporters=lcov --reporters=default --reporters=jest-junit",
+    "test:ci": "npx jest --testPathPattern=src/__tests__/ --coverage --coverageDirectory=coverage --coverageReporters=text --coverageReporters=lcov --reporters=default --reporters=jest-junit --watchAll=false --forceExit --passWithNoTests",
     "eject": "react-scripts eject",
     "server": "cd server && npm run dev",
     "dev": "concurrently -n \"client,server\" -c \"bgBlue,bgYellow\" \"npm start\" \"npm run server\""
@@ -46,6 +46,24 @@
     "outputName": "junit-frontend.xml",
     "classNameTemplate": "{classname}",
     "titleTemplate": "{title}"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "<rootDir>/src/__tests__/**/*.test.js"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js",
+      "\\.(jpg|jpeg|png|gif|svg|ico|webp)$": "<rootDir>/src/__mocks__/fileMock.js"
+    },
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-dom"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 50
+      }
+    }
   },
   "eslintConfig": {
     "extends": [
