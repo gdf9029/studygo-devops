@@ -36,9 +36,16 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false --passWithNoTests --forceExit --coverage --coverageReporters=text --coverageReporters=lcov --reporters=default --reporters=jest-junit",
     "eject": "react-scripts eject",
     "server": "cd server && npm run dev",
     "dev": "concurrently -n \"client,server\" -c \"bgBlue,bgYellow\" \"npm start\" \"npm run server\""
+  },
+  "jest-junit": {
+    "outputDirectory": ".",
+    "outputName": "junit-frontend.xml",
+    "classNameTemplate": "{classname}",
+    "titleTemplate": "{title}"
   },
   "eslintConfig": {
     "extends": [
@@ -61,6 +68,7 @@
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^3.7.2",
     "concurrently": "^8.0.1",
+    "jest-junit": "^16.0.0",
     "prettier": "^2.8.8",
     "prettier-plugin-tailwindcss": "^0.3.0",
     "tailwindcss": "^3.2.7"

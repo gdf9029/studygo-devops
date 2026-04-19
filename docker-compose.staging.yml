@@ -1,7 +1,7 @@
 version: "3.9"
 
 # ============================================================
-# StudyGo — Staging Environment
+# StudyGo — Staging Environment (Local Build)
 # docker-compose.staging.yml
 # ============================================================
 
@@ -15,6 +15,7 @@ volumes:
   grafana-staging-data:
 
 services:
+
   # ─── MongoDB ────────────────────────────────────────────────
   mongo:
     image: mongo:6.0
@@ -22,7 +23,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-staging_pass}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-staging_pass123}
       MONGO_INITDB_DATABASE: studygo_staging
     volumes:
       - mongo-staging-data:/data/db
@@ -33,25 +34,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 20s
 
-  # ─── Backend API ────────────────────────────────────────────
+  # ─── Backend API (built locally) ────────────────────────────
   backend:
-    image: ${DOCKER_REGISTRY:-studygo}/studygo-backend:${BUILD_VERSION:-latest}
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     container_name: studygo-backend-staging
     restart: unless-stopped
     environment:
       NODE_ENV: staging
       PORT: 4000
-      MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-staging_pass}@mongo:27017/studygo_staging?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_USER: ${MAIL_USER}
-      MAIL_PASS: ${MAIL_PASS}
-      CLOUD_NAME: ${CLOUD_NAME}
-      API_KEY: ${API_KEY}
-      API_SECRET: ${API_SECRET}
-      RAZORPAY_KEY: ${RAZORPAY_KEY}
-      RAZORPAY_SECRET: ${RAZORPAY_SECRET}
+      MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-staging_pass123}@mongo:27017/studygo_staging?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-demo_jwt_secret}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_USER: ${MAIL_USER:-demo@studygo.com}
+      MAIL_PASS: ${MAIL_PASS:-demo_pass}
+      CLOUD_NAME: ${CLOUD_NAME:-demo_cloud}
+      API_KEY: ${API_KEY:-123456789}
+      API_SECRET: ${API_SECRET:-demo_secret}
+      RAZORPAY_KEY: ${RAZORPAY_KEY:-rzp_test_demo}
+      RAZORPAY_SECRET: ${RAZORPAY_SECRET:-rzp_secret_demo}
     depends_on:
       mongo:
         condition: service_healthy
@@ -61,11 +65,15 @@ services:
       - studygo-staging
     labels:
       - "com.studygo.env=staging"
-      - "com.studygo.version=${BUILD_VERSION:-latest}"
+      - "com.studygo.service=backend"
 
-  # ─── Frontend ────────────────────────────────────────────────
+  # ─── Frontend (built locally) ────────────────────────────────
   frontend:
-    image: ${DOCKER_REGISTRY:-studygo}/studygo-frontend:${BUILD_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BASE_URL: http://localhost:4001/api/v1
     container_name: studygo-frontend-staging
     restart: unless-stopped
     ports:
@@ -76,7 +84,7 @@ services:
       - studygo-staging
     labels:
       - "com.studygo.env=staging"
-      - "com.studygo.version=${BUILD_VERSION:-latest}"
+      - "com.studygo.service=frontend"
 
   # ─── Prometheus ─────────────────────────────────────────────
   prometheus:
@@ -102,7 +110,7 @@ services:
     container_name: studygo-grafana-staging
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana-staging-data:/var/lib/grafana
@@ -126,19 +134,12 @@ services:
     networks:
       - studygo-staging
 
-  # ─── Node Exporter (host metrics) ───────────────────────────
+  # ─── Node Exporter ──────────────────────────────────────────
   node-exporter:
     image: prom/node-exporter:v1.6.1
     container_name: studygo-node-exporter-staging
     restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - studygo-staging
