@@ -269,7 +269,19 @@ pipeline {
                             docker network rm studygo-pipeline_studygo-staging 2>nul
                             echo Old network removed
 
-                            REM Start staging stack
+                            REM Inject real secrets from server/.env so backend container starts correctly
+                            set JWT_SECRET=abcd123
+                            set MAIL_HOST=smtp.gmail.com
+                            set MAIL_USER=adityasoodgood@gmail.com
+                            set MAIL_PASS=mgfyzotdzqkpfclw
+                            set CLOUD_NAME=de5llnb0x
+                            set API_KEY=994167331515316
+                            set API_SECRET=rz8v-jDnETABlP6ikM_CXhWo5zI
+                            set RAZORPAY_KEY=rzp_test_RZ9Up94XF2yFht
+                            set RAZORPAY_SECRET=g5nGggNDpqcTDPs7KOXL7pbb
+                            set MONGODB_URL=mongodb+srv://adityasoodgood:fKhM86hqwMPHsCsl@cluster0.s0ukjtj.mongodb.net/StudyGo?appName=Cluster0
+
+                            REM Start full staging stack
                             set BUILD_VERSION=${BUILD_VERSION}
                             docker compose -f docker-compose.staging.yml up -d
 
@@ -280,8 +292,8 @@ pipeline {
                             ping -n 25 127.0.0.1 >nul
 
                             echo === Smoke testing staging services (non-fatal) ===
-                            curl -s -o nul -w "Frontend HTTP: %%{http_code}" http://localhost:3001/ 2>nul || echo " - Frontend starting (check docker ps)"
-                            curl -s -o nul -w "Backend  HTTP: %%{http_code}" http://localhost:4001/ 2>nul || echo " - Backend starting (check docker logs studygo-backend-staging)"
+                            curl -s -o nul -w "Frontend HTTP: %%{http_code}" http://localhost:3001/ 2>nul || echo " - Frontend starting"
+                            curl -s -o nul -w "Backend  HTTP: %%{http_code}" http://localhost:4001/ 2>nul || echo " - Backend starting"
 
                             echo === Final container status ===
                             docker compose -f docker-compose.staging.yml ps

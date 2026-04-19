@@ -46,15 +46,16 @@ services:
     environment:
       NODE_ENV: staging
       PORT: 4000
-      MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-staging_pass123}@mongo:27017/studygo_staging?authSource=admin
+      MONGODB_URL: ${MONGODB_URL:-mongodb://admin:staging_pass123@mongo:27017/studygo_staging?authSource=admin}
       JWT_SECRET: ${JWT_SECRET:-demo_jwt_secret}
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_USER: ${MAIL_USER:-demo@studygo.com}
       MAIL_PASS: ${MAIL_PASS:-demo_pass}
+      FOLDER_NAME: StudyGo
       CLOUD_NAME: ${CLOUD_NAME:-demo_cloud}
-      API_KEY: ${API_KEY:-123456789}
-      API_SECRET: ${API_SECRET:-demo_secret}
-      RAZORPAY_KEY: ${RAZORPAY_KEY:-rzp_test_demo}
+      CLOUD_API_KEY: ${API_KEY:-123456789}
+      CLOUD_API_SECRET: ${API_SECRET:-demo_secret}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY:-rzp_test_demo}
       RAZORPAY_SECRET: ${RAZORPAY_SECRET:-rzp_secret_demo}
     depends_on:
       mongo:
