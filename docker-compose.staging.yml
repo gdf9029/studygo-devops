@@ -36,11 +36,9 @@ services:
       retries: 5
       start_period: 20s
 
-  # ─── Backend API (built locally) ────────────────────────────
+  # ─── Backend API (pre-built image) ─────────────────────────
   backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: studygo-pipeline-backend:latest
     container_name: studygo-backend-staging
     restart: unless-stopped
     environment:
@@ -64,17 +62,19 @@ services:
       - "4001:4000"
     networks:
       - studygo-staging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     labels:
       - "com.studygo.env=staging"
       - "com.studygo.service=backend"
 
-  # ─── Frontend (built locally) ────────────────────────────────
+  # ─── Frontend (pre-built image) ────────────────────────────
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        REACT_APP_BASE_URL: http://localhost:4001/api/v1
+    image: studygo-pipeline-frontend:latest
     container_name: studygo-frontend-staging
     restart: unless-stopped
     ports:
@@ -83,6 +83,12 @@ services:
       - backend
     networks:
       - studygo-staging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     labels:
       - "com.studygo.env=staging"
       - "com.studygo.service=frontend"
@@ -93,8 +99,8 @@ services:
     container_name: studygo-prometheus-staging
     restart: unless-stopped
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml
+      - C:\studygo-monitoring\prometheus.yml:/etc/prometheus/prometheus.yml
+      - C:\studygo-monitoring\alert.rules.yml:/etc/prometheus/alert.rules.yml
       - prometheus-staging-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -111,11 +117,14 @@ services:
     container_name: studygo-grafana-staging
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     volumes:
       - grafana-staging-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - C:\studygo-monitoring\grafana\provisioning:/etc/grafana/provisioning
     ports:
       - "3002:3000"
     networks:
@@ -127,7 +136,7 @@ services:
     container_name: studygo-alertmanager-staging
     restart: unless-stopped
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - C:\studygo-monitoring\alertmanager.yml:/etc/alertmanager/alertmanager.yml
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
     ports:

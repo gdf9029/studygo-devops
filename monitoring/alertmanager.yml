@@ -17,73 +17,49 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  receiver: "default-email"
+  receiver: "default-receiver"
 
   routes:
-    # Critical alerts → immediate notification
     - match:
         severity: critical
-      receiver: "critical-email"
+      receiver: "critical-receiver"
       repeat_interval: 1h
 
-    # Payment alerts → dedicated payment team
     - match:
         team: payments
-      receiver: "payments-team"
+      receiver: "payments-receiver"
       repeat_interval: 30m
 
-    # DevOps infrastructure alerts
     - match:
         team: devops
-      receiver: "devops-team"
+      receiver: "devops-receiver"
       repeat_interval: 2h
 
 # ─── Receivers ───────────────────────────────────────────────
 receivers:
 
-  - name: "default-email"
+  - name: "default-receiver"
     email_configs:
       - to: "team@studygo.internal"
-        subject: "[StudyGo][{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
-        body: |
-          {{ range .Alerts }}
-          Alert: {{ .Annotations.summary }}
-          Details: {{ .Annotations.description }}
-          Severity: {{ .Labels.severity }}
-          Started: {{ .StartsAt }}
-          {{ end }}
         send_resolved: true
 
-  - name: "critical-email"
+  - name: "critical-receiver"
     email_configs:
-      - to: "oncall@studygo.internal, cto@studygo.internal"
-        subject: "🚨 [CRITICAL][StudyGo] {{ .GroupLabels.alertname }}"
-        body: |
-          CRITICAL ALERT — IMMEDIATE ACTION REQUIRED
-
-          {{ range .Alerts }}
-          Alert: {{ .Annotations.summary }}
-          Description: {{ .Annotations.description }}
-          Runbook: {{ .Annotations.runbook }}
-          Started: {{ .StartsAt }}
-          {{ end }}
+      - to: "oncall@studygo.internal"
         send_resolved: true
 
-  - name: "payments-team"
+  - name: "payments-receiver"
     email_configs:
       - to: "payments@studygo.internal"
-        subject: "💳 [StudyGo Payments] {{ .GroupLabels.alertname }}"
         send_resolved: true
 
-  - name: "devops-team"
+  - name: "devops-receiver"
     email_configs:
       - to: "devops@studygo.internal"
-        subject: "🔧 [StudyGo Infra] {{ .GroupLabels.alertname }}"
         send_resolved: true
 
 # ─── Inhibition Rules ────────────────────────────────────────
 inhibit_rules:
-  # If backend is down, suppress downstream performance alerts
   - source_match:
       alertname: "BackendDown"
     target_match_re:

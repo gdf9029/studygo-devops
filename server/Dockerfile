@@ -3,15 +3,19 @@
 # Node.js Express API with MongoDB
 # ============================================================
 
-# --- Stage 1: Install dependencies ---
+# --- Stage 1: Install dependencies (with build tools for native modules) ---
 FROM node:18-alpine AS deps
 
 WORKDIR /app
 
+# Install build tools required for native modules (bcrypt, etc.)
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 
-# Install only production dependencies for final image
-RUN npm ci --only=production --legacy-peer-deps
+# Install all production dependencies + rebuild native binaries for Linux
+RUN npm ci --only=production --legacy-peer-deps && \
+    npm rebuild bcrypt --build-from-source
 
 # --- Stage 2: Production Image ---
 FROM node:18-alpine AS production

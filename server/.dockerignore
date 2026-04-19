@@ -1,0 +1,6 @@
+node_modules
+.git
+*.log
+coverage
+junit-backend.xml
+.env
