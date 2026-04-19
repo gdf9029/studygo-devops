@@ -40,7 +40,7 @@ pipeline {
                 // Frontend dependencies
                 bat '''
                     echo === Installing frontend dependencies ===
-                    call npm ci --legacy-peer-deps
+                    call npm install --legacy-peer-deps
                     echo Frontend dependencies installed OK
                 '''
 

@@ -21,8 +21,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# lock files
-package-lock.json
+# lock files (committed so Jenkins npm ci works)
+# package-lock.json -- do NOT ignore, needed for npm ci in Jenkins
 pnpm-lock.yaml
 
 # IDE
